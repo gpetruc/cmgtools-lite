@@ -7,9 +7,7 @@ nLepTight:   nLepTight : [-0.5,0.5,1.5,2.5,3.5,4.5,5.5] ; XTitle="Number of tigh
 2lep_nTight: 	if3(nLepFO>1,LepGood1_isTight+LepGood2_isTight,-99)                                          : [-0.5,0.5,1.5,2.5]; XTitle="Tight leptons among the first two", XNDdiv=505, Legend='TL', IncludeOverflows=False
 2lep_charge:  	if3(nLepFO>1,LepGood1_charge+LepGood2_charge,-99) 	     	     	      		     : [-2.5,-1.5,-0.5,0.5,1.5,2.5]; XTitle='q(l_{1}\,l_{2})', XNDdiv=505, Legend='BR', IncludeOverflows=False
 2lep_flav:    	if3(nLepFO>1,if3(abs(LepGood1_pdgId)!=abs(LepGood2_pdgId),1,abs(LepGood1_pdgId)-11),-99)     : [-0.5,0.5,1.5,2.5]; XTitle="ee/e#mu/#mu#mu", XNDdiv=505
-2lep_conePt_nT: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_conePt,LepGood1_conePt),-99) : 40,0,200; XTitle="L lepton cone p_{T} [GeV] in TL ev."
-2lep_bFrac_nT_vsNb: if3( (nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1), if3(LepGood1_isTight,(LepGood2_mcMatchAny == 4 || LepGood2_mcMatchAny == 5),(LepGood1_mcMatchAny == 4 || LepGood1_mcMatchAny == 5)), -99)\:nBJetMedium25 : [-0.5,0.5,1.5,2.5,3.5]; XTitle="N(jet\, p_{T} > 25 GeV\, CSVM)", YTitle="Frac. of fakes from b", Profile1D=True
-2lep_bFrac_nT_vsBCat: if3( (nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1), if3(LepGood1_isTight,(LepGood2_mcMatchAny == 4 || LepGood2_mcMatchAny == 5),(LepGood1_mcMatchAny == 4 || LepGood1_mcMatchAny == 5)), -99)\:(nBJetMedium25>=2) : [-0.5,0.5,1.5]; XTitle="isBTight \(2B\)", YTitle="Frac. of fakes from b", Profile1D=True
+2lep_conePt_nT: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_conePt,LepGood1_conePt),-99) : 60,0,120; XTitle="Lepton cone p_{T} [GeV] in TL ev."
 2lep_bestMVA:	max(LepGood1_mvaTTH,LepGood2_mvaTTH)										 : 60,-0.2,1; XTitle="Best lepMVA in 2l", Legend='TL', Logy
 2lep_worseMVA:	min(LepGood1_mvaTTH,LepGood2_mvaTTH)										 : 60,-0.2,1; XTitle="Worse lepMVA in 2l", Legend='TL', Logy
 
