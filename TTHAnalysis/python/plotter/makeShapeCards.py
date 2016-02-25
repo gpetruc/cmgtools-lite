@@ -188,6 +188,10 @@ for name in systs.keys():
 
 systsEnv1 = {}
 for name in systsEnv.keys():
+    modes = [entry[2] for entry in systsEnv[name]]
+    for _m in modes:
+        if _m!=modes[0]: raise RuntimeError, "Not supported"
+    if not (any([re.match(x+'.*',modes[0]) for x in ["envelop","shapeOnly"]])): continue # do only this before rebinning
     effmap0  = {}
     effmap12 = {}
     for p in procs:
@@ -285,6 +289,10 @@ if options.binfunction:
 
 systsEnv2={}
 for name in systsEnv.keys():
+    modes = [entry[2] for entry in systsEnv[name]]
+    for _m in modes:
+        if _m!=modes[0]: raise RuntimeError, "Not supported"
+    if (any([re.match(x+'.*',modes[0]) for x in ["envelop","shapeOnly"]])): continue # do only this before rebinning
     effmap0  = {}
     effmap12 = {}
     for p in procs:
@@ -403,7 +411,7 @@ for name in systsEnv.keys():
         effmap12[p] = effect12 
     if mode not in ["stat_foreach_shape_bins"]: systsEnv2[name] = (effmap0,effmap12,mode)
 
-
+systsEnv = {}
 systsEnv.update(systsEnv1)
 systsEnv.update(systsEnv2)
 
