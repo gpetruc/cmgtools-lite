@@ -24,8 +24,8 @@ TTJets_SingleLeptonFromTbar : TTJets_SingleLeptonFromTbar : xsec
 TTJets_SingleLeptonFromTbar_ext : TTJets_SingleLeptonFromTbar_ext : xsec
 TTLLJets_m1to10 : TTLLJets_m1to10 : xsec
 TTTT : TTTT : xsec
-TTWToLNu : TTWToLNu : xsec
-TTWToLNu_LO : TTWToLNu_LO : xsec
+TTWToLNu : TTWToLNu : 0.6008
+TTWToLNu_LO : TTWToLNu_LO : 0.6008
 TTZToLLNuNu_LO : TTZToLLNuNu_LO : xsec
 TTZToLLNuNu_LO_withLHE : TTZToLLNuNu_LO_withLHE : xsec
 TT_pow_ext : TT_pow_ext : xsec
