@@ -161,7 +161,7 @@ for sysfile in args[4:]:
             systsEnv[name].append((re.compile(procmap+"$"),amount,field[4]))
         elif field[4] in ["stat_foreach_shape_bins"]:
             (name, procmap, binmap, amount) = field[:4]
-            if re.match(binmap+"$",binname) == None: continue
+            if re.match(binmap+"$",truebinname) == None: continue
             if name not in systsEnv: systsEnv[name] = []
             systsEnv[name].append((re.compile(procmap),amount,field[4],field[5].split(',')))
         else:
@@ -262,6 +262,85 @@ for name in systsEnv.keys():
                 h.SetFillStyle(0); h.SetLineWidth(2)
             for h in p1up, p1dn: h.SetLineColor(4)
             for h in p2up, p2dn: h.SetLineColor(2)
+        effmap0[p]  = effect0 
+        effmap12[p] = effect12 
+    systsEnv1[name] = (effmap0,effmap12,mode)
+
+if options.binfunction:
+    newhistos={}
+    _to_be_rebinned={}
+    for n,h in report.iteritems(): _to_be_rebinned[h.GetName()]=h
+    for n,h in _to_be_rebinned.iteritems():
+        thisname = h.GetName()
+        newhistos[thisname]=rebin2Dto1D(h,options.binfunction)
+    for n,h in report.iteritems(): report[n] = newhistos[h.GetName().replace('_oldbinning','')]
+    allyields = dict([(p,h.Integral()) for p,h in report.iteritems()])
+    procs = []; iproc = {}
+    for i,s in enumerate(mca.listSignals()):
+        if allyields[s] == 0: continue
+        procs.append(s); iproc[s] = i-len(mca.listSignals())+1
+    for i,b in enumerate(mca.listBackgrounds()):
+        if allyields[b] == 0: continue
+        procs.append(b); iproc[b] = i+1
+
+systsEnv2={}
+for name in systsEnv.keys():
+    effmap0  = {}
+    effmap12 = {}
+    for p in procs:
+        effect = "-"
+        effect0  = "-"
+        effect12 = "-"
+        for entry in systsEnv[name]:
+            procmap,amount,mode = entry[:3]
+            if re.match(procmap, p):
+                effect = float(amount) if mode not in ["templates","alternateShape", "alternateShapeOnly"] else amount
+                morefields=entry[3:]
+        if mca._projection != None and effect not in ["-","0","1",1.0,0.0] and type(effect) == type(1.0):
+            effect = mca._projection.scaleSyst(name, effect)
+        if effect == "-" or effect == "0": 
+            effmap0[p]  = "-" 
+            effmap12[p] = "-" 
+            continue
+        if mode in ["stat_foreach_shape_bins"]:
+            if mca._projection != None:
+                raise RuntimeError,'mca._projection.scaleSystTemplate not implemented in the case of stat_foreach_shape_bins'
+            nominal = report[p]
+            if 'TH1' in nominal.ClassName():
+                for bin in xrange(1,nominal.GetNbinsX()+1):
+                    for binmatch in morefields[0]:
+                        if re.match(binmatch+"$",'%d'%bin):
+                            if (effect*nominal.GetBinError(bin)<0.1*sqrt(nominal.GetBinContent(bin)+1)):
+                                if options.verbose: print 'skipping stat_foreach_shape_bins %s %d because it is irrelevant'%(p,bin)
+                                break
+                            p0Up = nominal.Clone("%s_%s_%s_%s_bin%dUp"% (nominal.GetName(),name,truebinname,p,bin))
+                            p0Dn = nominal.Clone("%s_%s_%s_%s_bin%dDown"% (nominal.GetName(),name,truebinname,p,bin))
+                            p0Up.SetBinContent(bin,p0Up.GetBinContent(bin)+effect*p0Up.GetBinError(bin))
+                            p0Up.SetBinError(bin,p0Up.GetBinError(bin)*(p0Up.GetBinContent(bin)/nominal.GetBinContent(bin) if nominal.GetBinContent(bin)!=0 else 1))
+                            p0Dn.SetBinContent(bin,max(1e-5,p0Dn.GetBinContent(bin)-effect*p0Dn.GetBinError(bin)))
+                            p0Dn.SetBinError(bin,p0Dn.GetBinError(bin)*(p0Dn.GetBinContent(bin)/nominal.GetBinContent(bin) if nominal.GetBinContent(bin)!=0 else 1))
+                            report[str(p0Up.GetName())[2:]] = p0Up
+                            report[str(p0Dn.GetName())[2:]] = p0Dn
+                            systsEnv2["%s_%s_%s_bin%d"%(name,truebinname,p,bin)] = (dict([(_p,"1" if _p==p else "-") for _p in procs]),dict([(_p,"1" if _p==p else "-") for _p in procs]),"templates")
+                            break # otherwise you apply more than once to the same bin if more regexps match
+            elif 'TH2' in nominal.ClassName():
+                for binx in xrange(1,nominal.GetNbinsX()+1):
+                    for biny in xrange(1,nominal.GetNbinsY()+1):
+                        for binmatch in morefields[0]:
+                            if re.match(binmatch+"$",'%d,%d'%(binx,biny)):
+                                if (effect*nominal.GetBinError(binx,biny)<0.1*sqrt(nominal.GetBinContent(binx,biny)+1)):
+                                    if options.verbose: print 'skipping stat_foreach_shape_bins %s %d,%d because it is irrelevant'%(p,binx,biny)
+                                    break
+                                p0Up = nominal.Clone("%s_%s_%s_%s_bin%d_%dUp"% (nominal.GetName(),name,truebinname,p,binx,biny))
+                                p0Dn = nominal.Clone("%s_%s_%s_%s_bin%d_%dDown"% (nominal.GetName(),name,truebinname,p,binx,biny))
+                                p0Up.SetBinContent(binx,biny,p0Up.GetBinContent(binx,biny)+effect*p0Up.GetBinError(binx,biny))
+                                p0Up.SetBinError(binx,biny,p0Up.GetBinError(binx,biny)*(p0Up.GetBinContent(binx,biny)/nominal.GetBinContent(binx,biny) if nominal.GetBinContent(binx,biny)!=0 else 1))
+                                p0Dn.SetBinContent(binx,biny,max(1e-5,p0Dn.GetBinContent(binx,biny)-effect*p0Dn.GetBinError(binx,biny)))
+                                p0Dn.SetBinError(binx,biny,p0Dn.GetBinError(binx,biny)*(p0Dn.GetBinContent(binx,biny)/nominal.GetBinContent(binx,biny) if nominal.GetBinContent(binx,biny)!=0 else 1))
+                                report[str(p0Up.GetName())[2:]] = p0Up
+                                report[str(p0Dn.GetName())[2:]] = p0Dn
+                                systsEnv2["%s_%s_%s_bin%d_%d"%(name,truebinname,p,binx,biny)] = (dict([(_p,"1" if _p==p else "-") for _p in procs]),dict([(_p,"1" if _p==p else "-") for _p in procs]),"templates")
+                                break # otherwise you apply more than once to the same bin if more regexps match
         elif mode in ["templates"]:
             nominal = report[p]
             p0Up = report["%s_%s_Up" % (p, effect)]
@@ -270,19 +349,20 @@ for name in systsEnv.keys():
                 raise RuntimeError, "Missing templates %s_%s_(Up,Dn) for %s" % (p,effect,name)
             p0Up.SetName("%s_%sUp"   % (nominal.GetName(),name))
             p0Dn.SetName("%s_%sDown" % (nominal.GetName(),name))
-            if (p0Up.Integral()<=0 + p0Dn.Integral<=0)>=1:
-                if (p0Up.Integral()<=0 + p0Dn.Integral<=0)==2: raise RuntimeError, 'ERROR: both template variations have negative or zero integral: %s, Up %f, Down %f'%(p,p0Up.Integral(),p0Dn.Integral())
-                print 'Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Up %f, Down %f'%(p,p0Up.Integral(),p0Dn.Integral())
+            if p0Up.Integral()<=0 or p0Dn.Integral()<=0:
+                if p0Up.Integral()<=0 and p0Dn.Integral()<=0: raise RuntimeError, 'ERROR: both template variations have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
+                print 'Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
                 for b in xrange(1,nominal.GetNbinsX()+1):
                     y0 = nominal.GetBinContent(b)
-                    yA = p0Up.GetBinContent(b) if p0Up.Integral>0 else p0Dn.GetBinContent(b)
+                    yA = p0Up.GetBinContent(b) if p0Up.Integral()>0 else p0Dn.GetBinContent(b)
                     yM = y0
                     if (y0 > 0 and yA > 0):
                         yM = y0*y0/yA
                     elif yA == 0:
                         yM = 2*y0
-                    if p0Up.Integral>0: p0Dn.SetBinContent(b, yM)
+                    if p0Up.Integral()>0: p0Dn.SetBinContent(b, yM)
                     else: p0Up.SetBinContent(b, yM)
+                print 'The integral is now: %s, Nominal %f, Up %f, Down %f'%(p,nominal.Integral(),p0Up.Integral(),p0Dn.Integral())
             report[str(p0Up.GetName())[2:]] = p0Up
             report[str(p0Dn.GetName())[2:]] = p0Dn
             effect0  = "1"
@@ -321,76 +401,8 @@ for name in systsEnv.keys():
             effect12 = "-"
         effmap0[p]  = effect0 
         effmap12[p] = effect12 
-    systsEnv1[name] = (effmap0,effmap12,mode)
+    if mode not in ["stat_foreach_shape_bins"]: systsEnv2[name] = (effmap0,effmap12,mode)
 
-if options.binfunction:
-    newhistos={}
-    _to_be_rebinned={}
-    for n,h in report.iteritems(): _to_be_rebinned[h.GetName()]=h
-    for n,h in _to_be_rebinned.iteritems():
-        thisname = h.GetName()
-        newhistos[thisname]=rebin2Dto1D(h,options.binfunction)
-    for n,h in report.iteritems(): report[n] = newhistos[h.GetName().replace('_oldbinning','')]
-    allyields = dict([(p,h.Integral()) for p,h in report.iteritems()]) # update as the normalization can change when cropping bins
-
-systsEnv2={}
-for name in systsEnv.keys():
-    effmap0  = {}
-    effmap12 = {}
-    for p in procs:
-        effect = "-"
-        effect0  = "-"
-        effect12 = "-"
-        for entry in systsEnv[name]:
-            procmap,amount,mode = entry[:3]
-            if re.match(procmap, p):
-                effect = float(amount) if mode not in ["templates","alternateShape", "alternateShapeOnly"] else amount
-                morefields=entry[3:]
-        if mca._projection != None and effect not in ["-","0","1",1.0,0.0] and type(effect) == type(1.0):
-            effect = mca._projection.scaleSyst(name, effect)
-        if effect == "-" or effect == "0": 
-            effmap0[p]  = "-" 
-            effmap12[p] = "-" 
-            continue
-        if mode in ["stat_foreach_shape_bins"]:
-            if mca._projection != None:
-                raise RuntimeError,'mca._projection.scaleSystTemplate not implemented in the case of stat_foreach_shape_bins'
-            nominal = report[p]
-            if 'TH1' in nominal.ClassName():
-                for bin in xrange(1,nominal.GetNbinsX()+1):
-                    for binmatch in morefields[0]:
-                        if re.match(binmatch+"$",'%d'%bin):
-                            if (effect*nominal.GetBinError(bin)<0.1*sqrt(nominal.GetBinContent(bin)+1)):
-                                if options.verbose: print 'skipping stat_foreach_shape_bins %s %d because it is irrelevant'%(p,bin)
-                                break
-                            p0Up = nominal.Clone("%s_%s_%s_bin%dUp"% (nominal.GetName(),name,p,bin))
-                            p0Dn = nominal.Clone("%s_%s_%s_bin%dDown"% (nominal.GetName(),name,p,bin))
-                            p0Up.SetBinContent(bin,p0Up.GetBinContent(bin)+effect*p0Up.GetBinError(bin))
-                            p0Up.SetBinError(bin,p0Up.GetBinError(bin)*(p0Up.GetBinContent(bin)/nominal.GetBinContent(bin) if nominal.GetBinContent(bin)!=0 else 1))
-                            p0Dn.SetBinContent(bin,max(1e-5,p0Dn.GetBinContent(bin)-effect*p0Dn.GetBinError(bin)))
-                            p0Dn.SetBinError(bin,p0Dn.GetBinError(bin)*(p0Dn.GetBinContent(bin)/nominal.GetBinContent(bin) if nominal.GetBinContent(bin)!=0 else 1))
-                            report[str(p0Up.GetName())[2:]] = p0Up
-                            report[str(p0Dn.GetName())[2:]] = p0Dn
-                            systsEnv2["%s_%s_bin%d"%(name,p,bin)] = (dict([(_p,"1" if _p==p else "-") for _p in procs]),dict([(_p,"1" if _p==p else "-") for _p in procs]),"templates")
-                            break # otherwise you apply more than once to the same bin if more regexps match
-            elif 'TH2' in nominal.ClassName():
-                for binx in xrange(1,nominal.GetNbinsX()+1):
-                    for biny in xrange(1,nominal.GetNbinsY()+1):
-                        for binmatch in morefields[0]:
-                            if re.match(binmatch+"$",'%d,%d'%(binx,biny)):
-                                if (effect*nominal.GetBinError(binx,biny)<0.1*sqrt(nominal.GetBinContent(binx,biny)+1)):
-                                    if options.verbose: print 'skipping stat_foreach_shape_bins %s %d,%d because it is irrelevant'%(p,binx,biny)
-                                    break
-                                p0Up = nominal.Clone("%s_%s_%s_bin%d_%dUp"% (nominal.GetName(),name,p,binx,biny))
-                                p0Dn = nominal.Clone("%s_%s_%s_bin%d_%dDown"% (nominal.GetName(),name,p,binx,biny))
-                                p0Up.SetBinContent(binx,biny,p0Up.GetBinContent(binx,biny)+effect*p0Up.GetBinError(binx,biny))
-                                p0Up.SetBinError(binx,biny,p0Up.GetBinError(binx,biny)*(p0Up.GetBinContent(binx,biny)/nominal.GetBinContent(binx,biny) if nominal.GetBinContent(binx,biny)!=0 else 1))
-                                p0Dn.SetBinContent(binx,biny,max(1e-5,p0Dn.GetBinContent(binx,biny)-effect*p0Dn.GetBinError(binx,biny)))
-                                p0Dn.SetBinError(binx,biny,p0Dn.GetBinError(binx,biny)*(p0Dn.GetBinContent(binx,biny)/nominal.GetBinContent(binx,biny) if nominal.GetBinContent(binx,biny)!=0 else 1))
-                                report[str(p0Up.GetName())[2:]] = p0Up
-                                report[str(p0Dn.GetName())[2:]] = p0Dn
-                                systsEnv2["%s_%s_bin%d_%d"%(name,p,binx,biny)] = (dict([(_p,"1" if _p==p else "-") for _p in procs]),dict([(_p,"1" if _p==p else "-") for _p in procs]),"templates")
-                                break # otherwise you apply more than once to the same bin if more regexps match
 
 systsEnv.update(systsEnv1)
 systsEnv.update(systsEnv2)
