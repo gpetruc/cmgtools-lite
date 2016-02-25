@@ -98,7 +98,7 @@ def rebin2Dto1D(h,funcstring):
     func = getattr(ROOT,fname)
     nbins = int(nbins)
     goodname = h.GetName()
-    h.SetName(goodname+"_torebin")
+    h.SetName(goodname+"_oldbinning")
     newh = ROOT.TH1D(goodname,h.GetTitle(),nbins,0.5,nbins+0.5)
     x = h.GetXaxis()
     y = h.GetYaxis()
@@ -111,7 +111,9 @@ def rebin2Dto1D(h,funcstring):
             newh.SetBinContent(bin,newh.GetBinContent(bin)+h.GetBinContent(i+1,j+1))
             newh.SetBinError(bin,math.hypot(newh.GetBinError(bin),h.GetBinError(i+1,j+1)))
     for bin in range(1,nbins+1):
-        if newh.GetBinContent(bin)<=0: print 'Warning: bin %d in %s is %f'%(bin,newh.GetName(),newh.GetBinContent(bin))
+        if newh.GetBinContent(bin)<0:
+            print 'Warning: cropping to zero bin %d in %s (was %f)'%(bin,newh.GetName(),newh.GetBinContent(bin))
+            newh.SetBinContent(bin,0)
     newh.SetLineWidth(h.GetLineWidth())
     newh.SetLineStyle(h.GetLineStyle())
     newh.SetLineColor(h.GetLineColor())
@@ -152,7 +154,7 @@ for sysfile in args[4:]:
             if re.match(binmap+"$",truebinname) == None: continue
             if name not in systs: systs[name] = []
             systs[name].append((re.compile(procmap+"$"),amount))
-        elif field[4] in ["envelop","shapeOnly","templates","alternateShapeOnly"] or '2D' in field[4]:
+        elif field[4] in ["envelop","shapeOnly","templates","alternateShape","alternateShapeOnly"] or '2D' in field[4]:
             (name, procmap, binmap, amount) = field[:4]
             if re.match(binmap+"$",truebinname) == None: continue
             if name not in systs: systsEnv[name] = []
@@ -268,6 +270,19 @@ for name in systsEnv.keys():
                 raise RuntimeError, "Missing templates %s_%s_(Up,Dn) for %s" % (p,effect,name)
             p0Up.SetName("%s_%sUp"   % (nominal.GetName(),name))
             p0Dn.SetName("%s_%sDown" % (nominal.GetName(),name))
+            if (p0Up.Integral()<=0 + p0Dn.Integral<=0)>=1:
+                if (p0Up.Integral()<=0 + p0Dn.Integral<=0)==2: raise RuntimeError, 'ERROR: both template variations have negative or zero integral: %s, Up %f, Down %f'%(p,p0Up.Integral(),p0Dn.Integral())
+                print 'Warning: I am going to fix a template prediction that would have negative or zero integral: %s, Up %f, Down %f'%(p,p0Up.Integral(),p0Dn.Integral())
+                for b in xrange(1,nominal.GetNbinsX()+1):
+                    y0 = nominal.GetBinContent(b)
+                    yA = p0Up.GetBinContent(b) if p0Up.Integral>0 else p0Dn.GetBinContent(b)
+                    yM = y0
+                    if (y0 > 0 and yA > 0):
+                        yM = y0*y0/yA
+                    elif yA == 0:
+                        yM = 2*y0
+                    if p0Up.Integral>0: p0Dn.SetBinContent(b, yM)
+                    else: p0Up.SetBinContent(b, yM)
             report[str(p0Up.GetName())[2:]] = p0Up
             report[str(p0Dn.GetName())[2:]] = p0Dn
             effect0  = "1"
@@ -308,8 +323,15 @@ for name in systsEnv.keys():
         effmap12[p] = effect12 
     systsEnv1[name] = (effmap0,effmap12,mode)
 
-for n,h in report.iteritems():
-    if options.binfunction: report[n] = rebin2Dto1D(h,options.binfunction)
+if options.binfunction:
+    newhistos={}
+    _to_be_rebinned={}
+    for n,h in report.iteritems(): _to_be_rebinned[h.GetName()]=h
+    for n,h in _to_be_rebinned.iteritems():
+        thisname = h.GetName()
+        newhistos[thisname]=rebin2Dto1D(h,options.binfunction)
+    for n,h in report.iteritems(): report[n] = newhistos[h.GetName().replace('_oldbinning','')]
+    allyields = dict([(p,h.Integral()) for p,h in report.iteritems()]) # update as the normalization can change when cropping bins
 
 systsEnv2={}
 for name in systsEnv.keys():
