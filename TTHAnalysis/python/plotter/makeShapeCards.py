@@ -110,6 +110,8 @@ def rebin2Dto1D(h,funcstring):
             if bin not in allowed: raise RuntimeError, "Binning function gives not admissible result"
             newh.SetBinContent(bin,newh.GetBinContent(bin)+h.GetBinContent(i+1,j+1))
             newh.SetBinError(bin,math.hypot(newh.GetBinError(bin),h.GetBinError(i+1,j+1)))
+    for bin in range(1,nbins+1):
+        if newh.GetBinContent(bin)<=0: print 'Warning: bin %d in %s is %f'%(bin,newh.GetName(),newh.GetBinContent(bin))
     newh.SetLineWidth(h.GetLineWidth())
     newh.SetLineStyle(h.GetLineStyle())
     newh.SetLineColor(h.GetLineColor())
@@ -227,25 +229,23 @@ for name in systsEnv.keys():
                     p1dn.SetBinContent(b, p1dn.GetBinContent(b) * pow(effect,-c1))
                     p2up.SetBinContent(b, p2up.GetBinContent(b) * pow(effect,+c2))
                     p2dn.SetBinContent(b, p2dn.GetBinContent(b) * pow(effect,-c2))
-            else: # e.g. shapeOnly2D_1X_-1Y will do an anti-correlated shape distorsion of the x and y axes
-                if '_0X' in mode: modX = 0
-                elif '_1X' in mode: modX = 1
-                elif '_-1X' in mode: modX = -1
-                else: raise RuntimeError, 'Wrong configuration'
-                if '_0Y' in mode: modY = 0
-                elif '_1Y' in mode: modY = 1
-                elif '_-1Y' in mode: modY = -1
-                else: raise RuntimeError, 'Wrong configuration'
+            else: # e.g. shapeOnly2D_1.25X_0.83Y with effect == 1 will do an anti-correlated shape distorsion of the x and y axes by 25% and -20% respectively
+                parsed = mode.split('_')
+                if len(parsed)!=3 or parsed[0]!="shapeOnly2D" or effect!=1: raise RuntimeError, 'Incorrect option parsing for shapeOnly2D: %s %s'%(mode,effect)
+                effectX = float(parsed[1].strip('X'))
+                effectY = float(parsed[2].strip('Y'))
                 for bx in xrange(1,nbinx+1):
                     for by in xrange(1,nbiny+1):
                         x = (nominal.GetXaxis().GetBinCenter(bx)-xmin)/(xmax-xmin)
                         y = (nominal.GetYaxis().GetBinCenter(by)-ymin)/(ymax-ymin)
-                        c1 = c1def(x)*modX + c1def(y)*modY
-                        c2 = c2def(x)*modX + c2def(y)*modY
-                        p1up.SetBinContent(bx,by, p1up.GetBinContent(bx,by) * pow(effect,+c1))
-                        p1dn.SetBinContent(bx,by, p1dn.GetBinContent(bx,by) * pow(effect,-c1))
-                        p2up.SetBinContent(bx,by, p2up.GetBinContent(bx,by) * pow(effect,+c2))
-                        p2dn.SetBinContent(bx,by, p2dn.GetBinContent(bx,by) * pow(effect,-c2))
+                        c1X = c1def(x)
+                        c2X = c2def(x)
+                        c1Y = c1def(y)
+                        c2Y = c2def(y)
+                        p1up.SetBinContent(bx,by, p1up.GetBinContent(bx,by) * pow(effectX,+c1X) * pow(effectY,+c1Y))
+                        p1dn.SetBinContent(bx,by, p1dn.GetBinContent(bx,by) * pow(effectX,-c1X) * pow(effectY,-c1Y))
+                        p2up.SetBinContent(bx,by, p2up.GetBinContent(bx,by) * pow(effectX,+c2X) * pow(effectY,+c2Y))
+                        p2dn.SetBinContent(bx,by, p2dn.GetBinContent(bx,by) * pow(effectX,-c2X) * pow(effectY,-c2Y))
             if "shapeOnly" not in mode:
                 report[p+"_"+name+"0Up"]   = p0up
                 report[p+"_"+name+"0Down"] = p0dn
