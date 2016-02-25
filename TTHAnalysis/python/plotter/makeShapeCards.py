@@ -13,6 +13,8 @@ parser.add_option("--masses", dest="masses", default=None, type="string", help="
 parser.add_option("--mass-int-algo", dest="massIntAlgo", type="string", default="sigmaBR", help="Interpolation algorithm for nearby masses") 
 parser.add_option("--asimov", dest="asimov", action="store_true", help="Asimov")
 parser.add_option("--2d-binning-function",dest="binfunction", type="string", default=None, help="Function used to bin the 2D histogram: nbins:func, where func(x,y) = bin in [1,nbins]")
+parser.add_option("--infile",dest="infile", type="string", default=None, help="File to read histos from")
+parser.add_option("--savefile",dest="savefile", type="string", default=None, help="File to save histos to")
 
 (options, args) = parser.parse_args()
 options.weight = True
@@ -119,8 +121,21 @@ def rebin2Dto1D(h,funcstring):
     newh.SetLineColor(h.GetLineColor())
     return newh
 
+myout = outdir+"/common/" if len(masses) > 1 else outdir;
 
-report = mca.getPlotsRaw("x", args[2], args[3], cuts.allCuts(), nodata=options.asimov)
+report={}
+if options.infile!=None:
+    infile = ROOT.TFile(myout+binname+".bare.root","read")
+    for p in mca.listSignals(True)+mca.listBackgrounds(True)+['data']:
+        h = infile.Get(p)
+        if h: report[p] = h
+else:
+    report = mca.getPlotsRaw("x", args[2], args[3], cuts.allCuts(), nodata=options.asimov)
+
+if options.savefile!=None:
+    savefile = ROOT.TFile(myout+binname+".bare.root","recreate")
+    for n,h in report.iteritems(): savefile.WriteTObject(h,n)
+    savefile.Close()
 
 if options.asimov:
     tomerge = []
@@ -250,16 +265,22 @@ for name in systsEnv.keys():
                         c2Y = c2def(y)
                         p1up.SetBinContent(bx,by, p1up.GetBinContent(bx,by) * pow(effectX,+c1X) * pow(effectY,+c1Y))
                         p1dn.SetBinContent(bx,by, p1dn.GetBinContent(bx,by) * pow(effectX,-c1X) * pow(effectY,-c1Y))
-                        p2up.SetBinContent(bx,by, p2up.GetBinContent(bx,by) * pow(effectX,+c2X) * pow(effectY,+c2Y))
-                        p2dn.SetBinContent(bx,by, p2dn.GetBinContent(bx,by) * pow(effectX,-c2X) * pow(effectY,-c2Y))
+                        p2up.SetBinContent(bx,by, nominal.GetBinContent(bx,by))
+                        p2dn.SetBinContent(bx,by, nominal.GetBinContent(bx,by))
+#                        p2up.SetBinContent(bx,by, p2up.GetBinContent(bx,by) * pow(effectX,+c2X) * pow(effectY,+c2Y))
+#                        p2dn.SetBinContent(bx,by, p2dn.GetBinContent(bx,by) * pow(effectX,-c2X) * pow(effectY,-c2Y))
+            p1up.Scale(nominal.Integral()/p1up.Integral())
+            p1dn.Scale(nominal.Integral()/p1dn.Integral())
+            p2up.Scale(nominal.Integral()/p2up.Integral())
+            p2dn.Scale(nominal.Integral()/p2dn.Integral())
             if "shapeOnly" not in mode:
                 report[p+"_"+name+"0Up"]   = p0up
                 report[p+"_"+name+"0Down"] = p0dn
                 effect0 = "1"
             report[p+"_"+name+"1Up"]   = p1up
             report[p+"_"+name+"1Down"] = p1dn
-            report[p+"_"+name+"2Up"]   = p2up
-            report[p+"_"+name+"2Down"] = p2dn
+#            report[p+"_"+name+"2Up"]   = p2up
+#            report[p+"_"+name+"2Down"] = p2dn
             effect12 = "1"
             # useful for plotting
             for h in p0up, p0dn, p1up, p1dn, p2up, p2dn: 
@@ -444,6 +465,8 @@ if len(masses) > 1:
             for name,(effmap0,effmap12,mode) in systsEnv.iteritems():
                 if re.match('envelop.*',mode) and effmap0[p] != "-": 
                     posts += [ "_%s%d%s" % (name,i,d) for (i,d) in [(0,'Up'),(0,'Down'),(1,'Up'),(1,'Down'),(2,'Up'),(2,'Down')]]
+                elif re.match('shapeOnly2D.*',mode): 
+                    posts += [ "_%s%d%s" % (name,i,d) for (i,d) in [(1,'Up'),(1,'Down'),]]
                 elif effmap0[p]  != "-":
                     posts += [ "_%s%s" % (name,d) for d in ['Up','Down']]
                 elif effmap12[p] != "-":
