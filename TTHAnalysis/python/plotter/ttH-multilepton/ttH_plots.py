@@ -10,8 +10,8 @@ def base(selection):
 
     CORE="-P /data1/peruzzi/TREES_76X_200216_jecV1M2_skimOnlyMC_reclv8 -F sf/t {P}/2_recleaner_v8_b1E2/evVarFriend_{cname}.root -F sf/t {P}/4_kinMVA_trainFeb23_v0/evVarFriend_{cname}.root -F sf/t {P}/5_eventBTagRWT_onlyJets_v1/evVarFriend_{cname}.root"
 
-    CORE+=" -f -j 8 -l 2.26 --s2v --tree treeProducerSusyMultilepton --mcc ttH-multilepton/lepchoice-ttH-FO.txt --mcc ttH-multilepton/ttH_2lss3l_triggerdefs.txt"# --neg"
-    if doplots: CORE+=" --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.20 --legendFontSize 0.035 --showRatio --maxRatioRange 0 3  --showMCError --rebin 2"
+    CORE+=" -f -j 12 -l 2.26 --s2v --tree treeProducerSusyMultilepton --mcc ttH-multilepton/lepchoice-ttH-FO.txt --mcc ttH-multilepton/ttH_2lss3l_triggerdefs.txt"# --neg"
+    if doplots: CORE+=" --lspam '#bf{CMS} #it{Preliminary}' --legendWidth 0.20 --legendFontSize 0.035 --showRatio --maxRatioRange 0 3  --showMCError --rebin 4"
 
     if selection=='2lss':
         GO="%s ttH-multilepton/mca-2lss-mc.txt ttH-multilepton/2lss_tight.txt "%CORE
@@ -58,9 +58,10 @@ if __name__ == '__main__':
         if '_data' in torun: x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata.txt')
         if '_frdata' in torun:
             if not '_data' in torun: raise RuntimeError
-            x = fulltrees(x) # for the flips
             x = add(x,"--xp data")
             x = x.replace('mca-2lss-mcdata.txt','mca-2lss-mcdata-frdata.txt')
+        if '_mll200' in torun:
+            x = add(x,"-E mll200")
 
         if '_splitfakes' in torun:
             x = x.replace('mca-2lss-mc.txt','mca-2lss-mc-flavsplit.txt')
@@ -70,7 +71,7 @@ if __name__ == '__main__':
 #            x = x.replace("--xP 'kinMVA_input.*'","--sP 'kinMVA_input.*'")
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0.5 1.5")
             x = add(x,"--AP --plotmode nostack --sP kinMVA_2lss_ttbar --sP kinMVA_2lss_ttV")
-            x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --rebin 4 --errors")
+            x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --errors")
             if '_closuretest_norm' in torun:
                 x = x.replace("--plotmode nostack","--plotmode norm")
                 x = add(x,"--fitRatio 1")
@@ -84,7 +85,7 @@ if __name__ == '__main__':
             x = x.replace('mca-2lss-mc.txt','mca-2lss-data-frdata-%s.txt'%sys.argv[-1])
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0 2")
             x = add(x,"--plotmode nostack --sP kinMVA_2lss_ttbar --sP kinMVA_2lss_ttV")
-            x = add(x,"--ratioDen fakes_data --ratioNums fakes_data_%s --rebin 4 --errors"%sys.argv[-1])
+            x = add(x,"--ratioDen fakes_data --ratioNums fakes_data_%s --errors"%sys.argv[-1])
             if '_varsFR_norm' in torun:
                 x = x.replace("--plotmode nostack","--plotmode norm")
                 x = add(x,"--fitRatio 1")
@@ -107,7 +108,7 @@ if __name__ == '__main__':
 #            x = x.replace("--xP 'kinMVA_input.*'","--sP 'kinMVA_input.*'")
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0.5 1.5")
             x = add(x,"--AP --plotmode nostack --sP kinMVA_3l_ttbar --sP kinMVA_3l_ttV")
-            x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --rebin 4 --errors")
+            x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --errors")
             if '_closuretest_norm' in torun:
                 x = x.replace("--plotmode nostack","--plotmode norm")
                 x = add(x,"--fitRatio 1")
@@ -117,7 +118,7 @@ if __name__ == '__main__':
             x = x.replace('mca-3l-mc.txt','mca-3l-data-frdata-%s.txt'%sys.argv[-1])
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0 2")
             x = add(x,"--plotmode nostack --sP kinMVA_3l_ttbar --sP kinMVA_3l_ttV")
-            x = add(x,"--ratioDen fakes_data --ratioNums fakes_data_%s --rebin 4 --errors"%sys.argv[-1])
+            x = add(x,"--ratioDen fakes_data --ratioNums fakes_data_%s --errors"%sys.argv[-1])
             if '_varsFR_norm' in torun:
                 x = x.replace("--plotmode nostack","--plotmode norm")
                 x = add(x,"--fitRatio 1")
@@ -130,7 +131,7 @@ if __name__ == '__main__':
             if not '_data' in torun: raise RuntimeError
             x = fulltrees(x) # for the flips
             x = x.replace('mca-2lss-mcdata.txt','mca-2lss-mcdata-frdata.txt')
-        x = add(x,"-R 4j 3j 'nJet25==3' --rebin 2")
+        x = add(x,"-R 4j 3j 'nJet25==3'")
         plots = ['nJet25','nBJetLoose25','nBJetMedium25','met','metLD','htJet25j','mhtJet25','mtWmin','htllv','kinMVA_2lss_ttbar','kinMVA_2lss_ttV']
         runIt(x,'%s/all'%torun,plots)
         if '_flav' in torun:
@@ -152,10 +153,22 @@ if __name__ == '__main__':
         plots = ['2lep_bestMVA','2lep_worseMVA','met','metLD','nVert','nJet25','nBJetMedium25','nBJetLoose25','nBJetLoose40','nBJetMedium40']
         runIt(x,'%s'%torun,plots)
 
+    if 'cr_zjets' in torun:
+        x = base('2lss')
+        x = fulltrees(x) # for mc same-sign
+        x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata-ttbar.txt')
+        x = x.replace('--maxRatioRange 0 3','--maxRatioRange 0.8 1.2')
+        if '_data' not in torun: x = add(x,'--xp data')
+        x = add(x,"-I same-sign -X 2b1B -X Zee_veto -A alwaystrue mZ 'mZ1>60 && mZ1<120'")
+        for flav in ['mm','ee']:
+            runIt(add(x,'-E %s -X 4j'%flav),'%s/%s'%(torun,flav))
+            runIt(add(x,'-E %s -X 4j -E 2j'%flav),'%s_2j/%s'%(torun,flav))
+            runIt(add(x,'-E %s'%flav),'%s_4j/%s'%(torun,flav))
+
     if 'cr_wz' in torun:
         x = base('3l')
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
-        x = add(x,"-I 'Z veto' -X 4j -X 2b1B -E Bveto --rebin 4")
+        x = add(x,"-I 'Z veto' -X 4j -X 2b1B -E Bveto")
         plots = ['lep3_pt','metLD','nBJetLoose25','3lep_worseIso','minMllAFAS','3lep_worseMVA','3lep_mtW']
         runIt(x,'%s'%torun,plots)
 
@@ -167,7 +180,7 @@ if __name__ == '__main__':
             x = add(x,"--xp data")
             x = x.replace('mca-3l-mcdata.txt','mca-3l-mcdata-frdata.txt')
         plots = ['lep2_pt','met','nJet25','mZ1']
-        x = add(x,"-I 'Z veto' -X 2b1B -E 2b -E 1B --rebin 4")
+        x = add(x,"-I 'Z veto' -X 2b1B -E 2b -E 1B")
         runIt(x,'%s'%torun,plots)
         x = add(x,"-E 4j")
         runIt(x,'%s_4j'%torun,plots)
