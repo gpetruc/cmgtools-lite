@@ -27,16 +27,17 @@ class BTagReweightFriend:
         for ob in self.jets:
             jets = Collection(event,ob)
             ret['n%s'%ob] = len(jets)
-            ret[ob+"_"+self.label] = [ self.reweight(j) for j in jets ] 
+            ret[ob+"_"+self.label] = [ self.reweight(event,j) for j in jets ] 
         return ret
-    def reweight(self,jet):
-        if self.mcOnly and jet.mcPt <= 0: return -99.0
+    def reweight(self,event,jet):
+        if self.mcOnly and event.isData: return -99.0
         return self._reweight.calcJetWeight(jet, self.rwtKind, self.rwtSyst)
 
 class BTagLeptonReweightFriend(BTagReweightFriend):
     def __init__(self,reweight,jets=["LepGood"],inlabel="jetBTagCSV",outlabel="jetBTagCSVWeight",rwtKind='final',rwtSyst='nominal',maxjets=20):
         BTagReweightFriend.__init__(self,reweight,jets=jets,inlabel=inlabel,outlabel=outlabel,rwtKind=rwtKind,rwtSyst=rwtSyst,maxjets=maxjets,mcOnly=True)
-    def reweight(self,lep):
+    def reweight(self,event,lep):
+        if self.mcOnly and event.isData: return -99.0
         fl = abs(lep.mcMatchAny)
         if fl not in (4,5): fl = 1
         jetpt = lep.pt/lep.jetPtRatiov2
