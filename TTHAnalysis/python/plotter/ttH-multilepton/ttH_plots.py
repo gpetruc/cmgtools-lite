@@ -47,8 +47,6 @@ if __name__ == '__main__':
 
     torun = sys.argv[2]
 
-    if 'data' in torun and not any([re.match(x.strip()+'$',torun) for x in ['.*_appl.*','cr_.*','2lss_SR_.*_data_frdata','3l_SR_.*_data_frdata']]): raise RuntimeError, 'You are trying to unblind!'
-
     if '2lss_' in torun:
         x = base('2lss')
         if '_appl' in torun: x = add(x,'-I TT')
@@ -58,7 +56,6 @@ if __name__ == '__main__':
         if '_data' in torun: x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata.txt')
         if '_frdata' in torun:
             if not '_data' in torun: raise RuntimeError
-            x = add(x,"--xp data")
             x = x.replace('mca-2lss-mcdata.txt','mca-2lss-mcdata-frdata.txt')
         if '_mll200' in torun:
             x = add(x,"-E mll200")
@@ -68,7 +65,6 @@ if __name__ == '__main__':
             
         if '_closuretest' in torun:
             x = x.replace('mca-2lss-mc.txt','mca-2lss-mc-closuretest.txt')
-#            x = x.replace("--xP 'kinMVA_input.*'","--sP 'kinMVA_input.*'")
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0.5 1.5")
             x = add(x,"--AP --plotmode nostack --sP kinMVA_2lss_ttbar --sP kinMVA_2lss_ttV")
             x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --errors")
@@ -101,11 +97,9 @@ if __name__ == '__main__':
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
         if '_frdata' in torun:
             if not '_data' in torun: raise RuntimeError
-            x = add(x,"--xp data")
             x = x.replace('mca-3l-mcdata.txt','mca-3l-mcdata-frdata.txt')
         if '_closuretest' in torun:
             x = x.replace('mca-3l-mc.txt','mca-3l-mc-closuretest.txt')
-#            x = x.replace("--xP 'kinMVA_input.*'","--sP 'kinMVA_input.*'")
             x = x.replace("--maxRatioRange 0 3","--maxRatioRange 0.5 1.5")
             x = add(x,"--AP --plotmode nostack --sP kinMVA_3l_ttbar --sP kinMVA_3l_ttV")
             x = add(x,"--ratioDen FR_QCD --ratioNums FR_TT --errors")
@@ -122,6 +116,8 @@ if __name__ == '__main__':
             if '_varsFR_norm' in torun:
                 x = x.replace("--plotmode nostack","--plotmode norm")
                 x = add(x,"--fitRatio 1")
+        if '_x2j' in torun:
+            x = add(x,"-E x2j")
         runIt(x,'%s'%torun)
 
     if 'cr_3j' in torun:
@@ -129,7 +125,7 @@ if __name__ == '__main__':
         if '_data' in torun: x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata.txt')
         if '_frdata' in torun:
             if not '_data' in torun: raise RuntimeError
-            x = fulltrees(x) # for the flips
+            x = fulltrees(x)
             x = x.replace('mca-2lss-mcdata.txt','mca-2lss-mcdata-frdata.txt')
         x = add(x,"-R 4j 3j 'nJet25==3'")
         plots = ['nJet25','nBJetLoose25','nBJetMedium25','met','metLD','htJet25j','mhtJet25','mtWmin','htllv','kinMVA_2lss_ttbar','kinMVA_2lss_ttV']
@@ -137,11 +133,10 @@ if __name__ == '__main__':
         if '_flav' in torun:
             for flav in ['mm','ee','em']:
                 runIt(add(x,'-E %s'%flav),'%s/%s'%(torun,flav),plots)
-#                if flav=='ee': runIt(add(x,'-E %s -X ee_metLD'%flav),'%s/%s_relaxMetLD'%(torun,flav),plots)
 
     if 'cr_ttbar' in torun:
         x = base('2lss')
-        x = fulltrees(x)
+        x = fulltrees(x) # for mc same-sign
         x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata-ttbar.txt')
         if '_data' not in torun: x = add(x,'--xp data')
         if '_appl' in torun: x = add(x,'-I TT')
@@ -175,10 +170,6 @@ if __name__ == '__main__':
     if 'cr_ttz' in torun:
         x = base('3l')
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
-        if '_frdata' in torun:
-            if not '_data' in torun: raise RuntimeError
-            x = add(x,"--xp data")
-            x = x.replace('mca-3l-mcdata.txt','mca-3l-mcdata-frdata.txt')
         plots = ['lep2_pt','met','nJet25','mZ1']
         x = add(x,"-I 'Z veto' -X 2b1B -E 2b -E 1B")
         runIt(x,'%s'%torun,plots)
