@@ -39,7 +39,7 @@ if __name__ == "__main__":
     ROOT.gStyle.SetErrorX(0.5)
     ROOT.gStyle.SetOptStat(0)
     ROOT.gStyle.SetPaperSize(20.,25.)
-    for O,MLD in ("prefit","prefit"), ("postfit","fit_s"):
+    for O,MLD in ("prefit","prefit"), ("postfit_b","fit_b"), ("postfit_s","fit_s"):
       mldir  = mlfile.GetDirectory("shapes_"+MLD);
       if not mldir: raise RuntimeError, mlfile
       outfile = ROOT.TFile(basedir + "/"+O+"_" + basename(args[2]), "RECREATE")
