@@ -18,10 +18,10 @@ test -d cards/$OUTNAME || mkdir -p cards/$OUTNAME
 OPTIONS="${OPTIONS} --od cards/$OUTNAME ";
 
 SYSTS="ttH-multilepton/systsEnv.txt"
-BLoose=" -E BLoose "
-BTight=" -E BTight "
-ZeroTau=" -E 0tau "
-OneTau=" -E 1tau "
+BLoose=" -E ^BLoose "
+BTight=" -E ^BTight "
+ZeroTau=" -E ^0tau "
+OneTau=" -E ^1tau "
 
 OPTIONS="${OPTIONS} --Fs {P}/2_recleaner_v8_b1E2 --Fs {P}/4_kinMVA_trainFeb23_v0 --Fs {P}/5_eventBTagRWT_onlyJets_v1"
 OPTIONS="${OPTIONS} --mcc ttH-multilepton/lepchoice-ttH-FO.txt --mcc ttH-multilepton/ttH_2lss3l_triggerdefs.txt --neg" # neg necessary for subsequent rebin
@@ -43,7 +43,7 @@ if [[ "$1" == "all" || "$1" == "2lss" ]]; then
 
     for X in mm ee em; do 
         echo "2lss_${X}";
-	FLAV=" -E ${X} "
+	FLAV=" -E ^${X} "
 	if [[ "${X}" == "ee" ]]; then
 	    python makeShapeCards.py ${DOFILE} --2d-binning-function 6:ttH_MVAto1D_6_2lss_Marco ttH-multilepton/mca-2lss-mcdata-frdata.txt ttH-multilepton/2lss_tight.txt ${FUNCTION_2L} $SYSTS $OPT_2L -o 2lss_${X}_0tau_pos $POS $FLAV $ZeroTau;
             python makeShapeCards.py ${DOFILE} --2d-binning-function 6:ttH_MVAto1D_6_2lss_Marco ttH-multilepton/mca-2lss-mcdata-frdata.txt ttH-multilepton/2lss_tight.txt ${FUNCTION_2L} $SYSTS $OPT_2L -o 2lss_${X}_0tau_neg $NEG $FLAV $ZeroTau;
