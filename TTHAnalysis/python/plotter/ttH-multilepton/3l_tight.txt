@@ -5,7 +5,7 @@ cleanup: minMllAFAS > 12
 trigger: Triggers_3l
 pt2010: LepGood1_conePt>20 && LepGood2_conePt>10 && LepGood3_conePt>10
 TTT: LepGood1_isTight && LepGood2_isTight && LepGood3_isTight
-Z veto: abs(mZ1-91.2) > 10
+Zveto: abs(mZ1-91.2) > 10
 met LD: nJet25 >= 4 || met_pt*0.00397 + mhtJet25*0.00265 > 0.2 + 0.1*(mZ1 > 0)
 q1: abs(LepGood1_charge + LepGood2_charge + LepGood3_charge) == 1
 

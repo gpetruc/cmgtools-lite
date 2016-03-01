@@ -54,7 +54,9 @@ if __name__ == '__main__':
     if '2lss_' in torun:
         x = base('2lss')
         if '_appl' in torun: x = add(x,'-I ^TT ')
-        if '_1fo' in torun: x = add(x,"-A alwaystrue 1FO 'LepGood1_isTight+LepGood2_isTight==1'")
+        if '_1fo' in torun:
+            x = add(x,"-A alwaystrue 1FO 'LepGood1_isTight+LepGood2_isTight==1'")
+            x = x.replace("--xP 'nT_.*'","")
         if '_2fo' in torun: x = add(x,"-A alwaystrue 2FO 'LepGood1_isTight+LepGood2_isTight==0'")
         if '_relax' in torun: x = add(x,'-X ^TT ')
         if '_data' in torun: x = x.replace('mca-2lss-mc.txt','mca-2lss-mcdata.txt')
@@ -97,6 +99,9 @@ if __name__ == '__main__':
     if '3l_' in torun:
         x = base('3l')
         if '_appl' in torun: x = add(x,'-I ^TTT ')
+        if '_1fo' in torun:
+            x = add(x,"-A alwaystrue 1FO 'LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2'")
+            x = x.replace("--xP 'nT_.*'","")
         if '_relax' in torun: x = add(x,'-X ^TTT ')
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
         if '_frdata' in torun:
@@ -167,7 +172,7 @@ if __name__ == '__main__':
     if 'cr_wz' in torun:
         x = base('3l')
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
-        x = add(x,"-I 'Z veto' -X ^4j -X ^2b1B -E ^Bveto ")
+        x = add(x,"-I 'Zveto' -X ^4j -X ^2b1B -E ^Bveto ")
         plots = ['lep3_pt','metLD','nBJetLoose25','3lep_worseIso','minMllAFAS','3lep_worseMVA','3lep_mtW']
         runIt(x,'%s'%torun,plots)
 
@@ -175,7 +180,7 @@ if __name__ == '__main__':
         x = base('3l')
         if '_data' in torun: x = x.replace('mca-3l-mc.txt','mca-3l-mcdata.txt')
         plots = ['lep2_pt','met','nJet25','mZ1']
-        x = add(x,"-I 'Z veto' -X ^2b1B -E ^gt2b -E ^1B ")
+        x = add(x,"-I 'Zveto' -X ^2b1B -E ^gt2b -E ^1B ")
         runIt(x,'%s'%torun,plots)
         x = add(x,"-E ^4j ")
         runIt(x,'%s_4j'%torun,plots)

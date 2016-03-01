@@ -13,10 +13,17 @@ nBJetMedium25:	nBJetMedium25				: [-0.5,0.5,1.5,2.5,3.5,4.5,5.5] ; XTitle='N(jet
 2lep_mtWmin: 	if3(nLepFO>1,min(mt_2(LepGood1_conePt,LepGood1_phi,met_pt,met_phi),mt_2(LepGood2_conePt,LepGood2_phi,met_pt,met_phi)),-99) 		  : 40,0,200; XTitle="min M_{T}(l_{i}\,E_{T}^{miss}) [GeV]"
 2lep_htllv:	if3(nLepFO>1,LepGood1_conePt+LepGood2_conePt+met_pt,-99)										  : 40,0,600; XTitle="l_{1} p_{T} + l_{2} p_{T} + E_{T}^{miss} [GeV]"
 
-nT_2lep_conePt: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_conePt,LepGood1_conePt),-99) : 60,0,120; XTitle="Lepton cone p_{T} [GeV] in TL ev."
-nT_2lep_mvaTTH: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_mvaTTH,LepGood1_mvaTTH),-99) : 60,0,120; XTitle="Lepton MVA in TL ev."
-nT_2lep_jetBTagCSV: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_jetBTagCSV,LepGood1_jetBTagCSV),-99) : 60,0,120; XTitle="Lepton jetBTagCSV in TL ev."
-nT_2lep_miniIso: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_miniRelIso,LepGood1_miniRelIso),-99) : 60,0,120; XTitle="Lepton miniIso in TL ev."
+nT_2lep_conePt: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_conePt,LepGood1_conePt),-99) : 60,0,80; XTitle="Lepton cone p_{T} [GeV] in TL ev."
+nT_2lep_abseta: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,abs(LepGood2_eta),abs(LepGood1_eta)),-99) : 60,0,2.5; XTitle="Lepton |#eta| in TL ev."
+nT_2lep_mvaTTH: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_mvaTTH,LepGood1_mvaTTH),-99) : 60,-1,1; XTitle="Lepton MVA in TL ev."
+nT_2lep_jetBTagCSV: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_jetBTagCSV,LepGood1_jetBTagCSV),-99) : 60,0,1; XTitle="Lepton jetBTagCSV in TL ev."
+nT_2lep_miniIso: if3((nLepFO>1)*(LepGood1_isTight+LepGood2_isTight==1),if3(LepGood1_isTight,LepGood2_miniRelIso,LepGood1_miniRelIso),-99) : 60,0,0.4; XTitle="Lepton miniIso in TL ev."
+
+nT_3lep_conePt: if3((nLepFO>2)*(LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2),if3(LepGood1_isTight==0,LepGood1_conePt,if3(LepGood2_isTight==0,LepGood2_conePt,LepGood3_conePt)),-99) : 60,0,80; XTitle="Lepton cone p_{T} [GeV] in TTL ev."
+nT_3lep_abseta: if3((nLepFO>2)*(LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2),if3(LepGood1_isTight==0,abs(LepGood1_eta),if3(LepGood2_isTight==0,abs(LepGood2_eta),abs(LepGood3_eta))),-99) : 60,0,2.5; XTitle="Lepton cone p_{T} [GeV] in TTL ev."
+nT_3lep_mvaTTH: if3((nLepFO>2)*(LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2),if3(LepGood1_isTight==0,LepGood1_mvaTTH,if3(LepGood2_isTight==0,LepGood2_mvaTTH,LepGood3_mvaTTH)),-99) : 60,-1,1; XTitle="Lepton cone p_{T} [GeV] in TTL ev."
+nT_3lep_jetBTagCSV: if3((nLepFO>2)*(LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2),if3(LepGood1_isTight==0,LepGood1_jetBTagCSV,if3(LepGood2_isTight==0,LepGood2_jetBTagCSV,LepGood3_jetBTagCSV)),-99) : 60,0,1; XTitle="Lepton cone p_{T} [GeV] in TTL ev."
+nT_3lep_miniIso: if3((nLepFO>2)*(LepGood1_isTight+LepGood2_isTight+LepGood3_isTight==2),if3(LepGood1_isTight==0,LepGood1_miniRelIso,if3(LepGood2_isTight==0,LepGood2_miniRelIso,LepGood3_miniRelIso)),-99) : 60,0,0.4; XTitle="Lepton cone p_{T} [GeV] in TTL ev."
 
 3lep_nTight: 	if3(nLepFO>2,LepGood1_isTight+LepGood2_isTight+LepGood3_isTight,-99)                            : [-0.5,0.5,1.5,2.5,3.5]; XTitle="Tight leptons among the first three", XNDdiv=505, Legend='TL', IncludeOverflows=False
 3lep_charge:  	if3(nLepFO>2,LepGood1_charge+LepGood2_charge+LepGood3_charge,-99) 	     	      	        : [-1.5,-0.5,0.5,1.5]; XTitle='q(l_{1}\,l_{2}\,l_{3})', XNDdiv=505, Legend='TR', IncludeOverflows=False, MoreY=2.0
