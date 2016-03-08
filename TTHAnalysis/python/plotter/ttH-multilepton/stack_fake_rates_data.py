@@ -23,18 +23,50 @@ def readGraphs(filename,pattern,keys):
     slicefile.Close()
     return ret
 
+def combine(graphs):
+    xvals = []
+    for g in graphs:
+        for i in xrange(g.GetN()):
+            xi = g.GetX()[i]
+            if len(xvals) == 0 or (min([abs(x[0]-xi) for x in xvals]) > 0.01):
+                xvals.append((xi,g.GetErrorXlow(i),g.GetErrorXhigh(i)))
+    xvals.sort()
+    ret = ROOT.TGraphAsymmErrors(len(xvals))
+    for j,(x,xl,xh) in enumerate(xvals):
+        yhli = [ (g.GetY()[i], g.GetErrorYhigh(i), g.GetErrorYlow(i)) for g in graphs for i in xrange(g.GetN()) if abs(g.GetX()[i]-x) <= 0.01 ]
+        yavg = sum((y/(h**2+l**2)) for (y,h,l) in yhli)/sum(1.0/(h**2+l**2) for (y,h,l) in yhli)
+        ymax = max(y+h for (y,h,l) in yhli)
+        ymin = min(y-l for (y,h,l) in yhli)
+        ret.SetPoint(j, x, yavg);
+        ret.SetPointError(j, xl, xh, yavg-ymin, ymax-yavg);
+    return ret
+
+        
+
 def attrs(filename,process):
     if "globalFit"  in filename:
-        if "QCD"      in process: return { 'Label':'QCD MC, cut',        'Color':ROOT.kPink-5, '#':1 }
-        if "data_sub" in process: return { 'Label':'Data, cut & sub', 'Color':ROOT.kAzure+1, '#':2  }
+        if "QCD"      in process: return { 'Label':'QCD MC, cut',     'Color':ROOT.kPink-5,  '#':1, 'key':'QCD_cut'  }
+        if "DY"       in process: return { 'Label':'DY MC, cut',      'Color':ROOT.kPink-5,  '#':1, 'key':'DY_cut'  }
+        if "data_sub" in process: return { 'Label':'Data, cut & sub', 'Color':ROOT.kAzure+1, '#':2, 'key':'data_sub' }
     elif "fitSimND" in filename:
-        if "QCD"       in process: return { 'Label':'QCD MC',        'Color':ROOT.kPink-2, '#':0  }
-        if "data_fit" in process: return { 'Label':'Data, sim. fit', 'Color':ROOT.kGreen+2, '#':3  }
+        if "QCD"      in process: return { 'Label':'QCD MC',         'Color':ROOT.kPink-2,  '#':0, 'key':'QCD'       }
+        if "DY"       in process: return { 'Label':'DY MC',          'Color':ROOT.kPink-2,    '#':0, 'key':'DY'       }
+        if "data_fit" in process: return { 'Label':'Data, sim. fit', 'Color':ROOT.kGreen+2, '#':3, 'key':'data_fit'  }
     elif "fQCD" in filename:
-        if "QCD"       in process: return { 'Label':'QCD MC',        'Color':ROOT.kPink-2, '#':0  }
-        if "data_fqcd" in process: return { 'Label':'Data, unfolded', 'Color':ROOT.kGray+2, '#':4  }
+        if "QCD"       in process: return { 'Label':'QCD MC',         'Color':ROOT.kPink-2, '#':0, 'key':'QCD'       }
+        if "DY"        in process: return { 'Label':'DY MC',          'Color':ROOT.kPink-2,   '#':0, 'key':'DY'       }
+        if "data_fqcd" in process: return { 'Label':'Data, unfolded', 'Color':ROOT.kGray+2, '#':4, 'key':'data_fqcd' }
     else: raise RuntimeError, "No idea of the file"
     raise RuntimeError, "No idea of the process"
+
+def setattrs(graph, opts):
+    graph.SetLineColor(opts['Color'])
+    graph.SetMarkerColor(opts['Color'])
+    graph.SetLineWidth(3)
+    graph.GetXaxis().SetTitle("lepton p_{T}^{corr} (GeV)")
+    graph.SetName(opts['key'])
+    graph.SetTitle(opts['Label'])
+
 
 if __name__ == "__main__":
     from CMGTools.TTHAnalysis.plotter.mcEfficiencies import stackEffs
@@ -74,11 +106,16 @@ if __name__ == "__main__":
         graphs = readGraphs(filename, pattern, processes)
         for p in processes:
             opts = attrs(filename, p)
+            setattrs(graphs[p], opts)
             alleffs.append( ( opts['Label'], graphs[p] ) )
-            graphs[p].SetLineColor(opts['Color'])
-            graphs[p].SetMarkerColor(opts['Color'])
-            graphs[p].SetLineWidth(2)
             graphs[p].order = opts['#']
-            graphs[p].GetXaxis().SetTitle("lepton p_{T}^{corr} (GeV)")
+            outfile.WriteTObject(graphs[p], opts['key'])
     alleffs.sort(key = lambda (l,g) : g.order)
     stackEffs(options.out,None,alleffs,options)
+    shortEffs = [ (l,g) for (l,g) in alleffs if g.order == 0 ]
+    cdata = combine([ g for (l,g) in alleffs if 'data' in g.GetName() ])
+    setattrs(cdata, { 'Color':ROOT.kBlack, 'key':'data_comb', 'Label':'Data, comb.' })
+    outfile.WriteTObject(cdata)
+    shortEffs.append( ( 'Data, comb.', cdata) )
+    stackEffs(options.out.replace(".root","_one.root"),None,shortEffs,options)
+    

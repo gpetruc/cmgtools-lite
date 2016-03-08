@@ -12,7 +12,7 @@ SAFE_COLOR_LIST=[
 ROOT.kBlack, ROOT.kRed, ROOT.kGreen+2, ROOT.kBlue, ROOT.kMagenta+1, ROOT.kOrange+7, ROOT.kCyan+1, ROOT.kGray+2, ROOT.kViolet+5, ROOT.kSpring+5, ROOT.kAzure+1, ROOT.kPink+7, ROOT.kOrange+3, ROOT.kBlue+3, ROOT.kMagenta+3, ROOT.kRed+2,
 ]
 def _unTLatex(string):
-    return string.replace("#chi","x").replace("#mu","m")
+    return string.replace("#chi","x").replace("#mu","m").replace("#rightarrow","->")
 class PlotFile:
     def __init__(self,fileName,options):
         self._options = options
@@ -673,7 +673,6 @@ class PlotMaker:
                 total = hists[0].Clone(outputName+"_total"); total.Reset()
                 totalSyst = hists[0].Clone(outputName+"_totalSyst"); totalSyst.Reset()
 
-                print "Plotmode for %s: %s" % (outputName, plotmode)
                 if plotmode == "norm": 
                     if 'data' in pmap:
                         total.GetYaxis().SetTitle(total.GetYaxis().GetTitle()+" (normalized)")
