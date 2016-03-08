@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     Notes:
     - Compile lepTnPFriendTreeMaker.cc first with ACLiC like so:
-       > root -l lepTnPFriendTreeMaker.cc+
+       > root -l -b -q -n lepTnPFriendTreeMaker.cc+
       This will produce lepTnPFriendTreeMaker_cc.so
     - Errors of <TTree::SetBranchAddress>: unknown branch occur
       for the MC-only branches when running on data.
@@ -107,7 +107,8 @@ if __name__ == '__main__':
                       action="store", type="string", dest="outDir",
                       help=("Output directory for tnp trees "
                             "[default: %default/]"))
-    parser.add_option("-f", "--filter", default='Run2015,DYJetsToLL_M50',
+    parser.add_option("-f", "--filter",
+                      default='Run2015,DYJetsToLL_M50,TTJets',
                       type="string", dest="filter",
                       help=("Comma separated list of filters to apply "
                             "[default: %default/]"))
