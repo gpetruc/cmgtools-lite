@@ -155,19 +155,31 @@ class ComponentCreator(object):
         return component
 
     def makeDataComponent(self,name,dataset,user,pattern,json=None,run_range=None,triggers=[],vetoTriggers=[],useAAA=False,jsonFilter=False):
+        runbyrun = (json != None and jsonFilter == 'runbyrun')
+        if not runbyrun: files = self.getFiles(dataset,user,pattern,run_range=run_range,useAAA=useAAA,json=(json if jsonFilter else None))
+        else:            files = []
         component = cfg.DataComponent(
             #dataset = dataset,
             name = name,
-            files = self.getFiles(dataset,user,pattern,run_range=run_range,useAAA=useAAA,json=(json if jsonFilter else None)),
+            files = files,
             intLumi = 1,
             triggers = triggers,
             json = (json if jsonFilter else None)
             )
         component.json = json
         component.vetoTriggers = vetoTriggers
-        component.dataset_entries = self.getPrimaryDatasetEntries(dataset,user,pattern)
+        component.dataset_entries = self.getPrimaryDatasetEntries(dataset,user,pattern,run_range=run_range) if not runbyrun else 0
         component.dataset = dataset
         component.run_range = run_range
+        if runbyrun:
+            import json, os.path
+            j = json.load(open(os.path.expandvars(component.json)))
+            certified_runs = [int(r) for r in sorted(j.keys())]
+            if run_range is not None: certified_runs = [r for r in certified_runs if self.run_range[0] <= r <= self.run_range[1]]
+            for run in certified_runs:
+                component.files           += self.getFiles(dataset,user,pattern,run_range=[run,run],useAAA=useAAA,json=None)
+                component.dataset_entries += self.getPrimaryDatasetEntries(dataset,user,pattern,run_range=[run,run])
+            component.files = list(set(component.files)) # to ensure uniqueness
         return component
 
     def getFiles(self, dataset, user, pattern, useAAA=False, run_range=None, json=None):
@@ -178,9 +190,9 @@ class ComponentCreator(object):
         if useAAA: mapping = 'root://cms-xrd-global.cern.ch/%s'
         return [ mapping % f for f in files]
 
-    def getPrimaryDatasetEntries(self, dataset, user, pattern, useAAA=False):
+    def getPrimaryDatasetEntries(self, dataset, user, pattern, useAAA=False, run_range=None):
         # print 'getting files for', dataset,user,pattern
-        ds = createDataset( user, dataset, pattern, True )
+        ds = createDataset( user, dataset, pattern, True, run_range=run_range )
         return ds.primaryDatasetEntries
 
     def getMyFiles(self, dataset, user, pattern, dbsInstance, useAAA=False):
