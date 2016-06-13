@@ -476,7 +476,7 @@ def writeDatasetToCache( cachename, dataset ):
     pickle.dump(dataset, pckfile)
 
 def createDataset( user, dataset, pattern, readcache=False, 
-                   basedir = None, run_range = None, json = None):
+                   basedir = None, run_range = None, json = None, cacheOnly=False):
     if user == 'CMS' and pattern != ".*root":
         raise RuntimeError, "For 'CMS' datasets, the pattern must be '.*root', while you configured '%s' for %s, %s" % (pattern, dataset.name, dataset)
 
@@ -496,6 +496,8 @@ def createDataset( user, dataset, pattern, readcache=False,
             data = readCache(dataset, user, pattern, run_range, json)
         except IOError:
             readcache = False
+    if cacheOnly:
+        return data if readcache else None
     if not readcache:
         #print "CreateDataset called: '%s', '%s', '%s', run_range %r" % (user, dataset, pattern, run_range) 
         if user == 'CMS':

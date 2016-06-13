@@ -3,6 +3,12 @@ from CMGTools.Production import eostools
 from CMGTools.Production.dataset import createDataset, createMyDataset
 import re
 
+def _createDataset(args):
+    (dataset,user,pattern,run,AAA) = args
+    ds = createDataset( user, dataset, pattern, readcache=True, run_range=[run,run] )
+    if ds.listOfGoodFiles(): return True
+    return False
+ 
 class ComponentCreator(object):
     def makeMCComponent(self,name,dataset,user,pattern,xSec=1,useAAA=False):
         
@@ -172,10 +178,16 @@ class ComponentCreator(object):
         component.dataset = dataset
         component.run_range = run_range
         if runbyrun:
-            import json, os.path
+            import json, os.path, multiprocessing
             j = json.load(open(os.path.expandvars(component.json)))
             certified_runs = [int(r) for r in sorted(j.keys())]
             if run_range is not None: certified_runs = [r for r in certified_runs if self.run_range[0] <= r <= self.run_range[1]]
+            new_runs = [ r for r in certified_runs if not createDataset(user,dataset,pattern, readcache=True, run_range=[r,r], json=None, cacheOnly=True) ]
+            if len(new_runs):
+                print "I have %d new runs to get dataset information about: %s" % (len(new_runs), ", ".join(map(str, new_runs)))
+                pool = multiprocessing.Pool(4)
+                ret = pool.map(_createDataset, [ (dataset,user,pattern,run,useAAA) for run in new_runs ])
+                pool.join()
             for run in certified_runs:
                 component.files           += self.getFiles(dataset,user,pattern,run_range=[run,run],useAAA=useAAA,json=None)
                 component.dataset_entries += self.getPrimaryDatasetEntries(dataset,user,pattern,run_range=[run,run])
