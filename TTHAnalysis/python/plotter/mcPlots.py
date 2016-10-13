@@ -758,8 +758,8 @@ class PlotMaker:
                 for p in itertools.chain(reversed(mca.listBackgrounds(allProcs=True)), reversed(mca.listSignals(allProcs=True)), extraProcesses):
                     if p in pmap: 
                         plot = pmap[p]
-                        if plot.Integral() == 0:
-                            print 'Warning: plotting histo %s with zero integral, there might be problems in the following'%p
+                        #if plot.Integral() == 0:
+                        #    print 'Warning: plotting histo %s with zero integral, there might be problems in the following'%p
                         if plot.Integral() < 0:
                             print 'Warning: plotting histo %s with negative integral (%f), the stack plot will probably be incorrect.'%(p,plot.Integral())
                         if 'TH1' in plot.ClassName():
@@ -1006,6 +1006,7 @@ class PlotMaker:
                                 dump.write("\n")
                             dump.close()
                         else:
+                            savErrorLevel = ROOT.gErrorIgnoreLevel; ROOT.gErrorIgnoreLevel = ROOT.kWarning;
                             if "TH2" in total.ClassName() or "TProfile2D" in total.ClassName():
                                 pmap["total"] = total
                                 for p in mca.listSignals(allProcs=True) + mca.listBackgrounds(allProcs=True) + ["signal", "background", "data", "total"]:
@@ -1030,6 +1031,7 @@ class PlotMaker:
                                         c1.Print("%s/%s_data_%s.%s" % (fdir, outputName, p, ext))
                             else:
                                 c1.Print("%s/%s.%s" % (fdir, outputName, ext))
+                            ROOT.gErrorIgnoreLevel = savErrorLevel;
                 c1.Close()
 
 def addPlotMakerOptions(parser, addAlsoMCAnalysis=True):
