@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-from CMGTools.TTHAnalysis.treeReAnalyzer import Module, EventLoop, Booker, PyTree
+import os.path, re, types, itertools, sys
+if "--tra2" in sys.argv:
+    print "Will use the new experimental version of treeReAnalyzer"
+    from CMGTools.TTHAnalysis.treeReAnalyzer2 import Module, EventLoop, Booker, PyTree
+else:
+    from CMGTools.TTHAnalysis.treeReAnalyzer import Module, EventLoop, Booker, PyTree
 from CMGTools.TTHAnalysis.tools.leptonJetReCleaner import LeptonJetReCleaner
 from glob import glob
-import os.path, re, types, itertools, sys
 from math import ceil
 import ROOT
 
@@ -294,12 +298,17 @@ class VariableProducer(Module):
     def __init__(self,name,booker,modules):
         Module.__init__(self,name,booker)
         self._modules = [ (n,m() if type(m) == types.FunctionType else m) for (n,m) in modules ]
+    def init(self,tree):
+        for n,m in self._modules:
+            if hasattr(m, 'init'): m.init(tree)
     def beginJob(self):
         self.t = PyTree(self.book("TTree","t","t"))
         self.branches = {}
         for name,mod in self._modules:
             print name
             print mod.listBranches()
+            if hasattr(mod,'setOutputTree'):
+                mod.setOutputTree(self.t)
             for B in mod.listBranches():
                 # don't add the same branch twice
                 if B in self.branches:
@@ -349,6 +358,7 @@ parser.add_option("-I", "--import", dest="imports",  type="string", default=[], 
 parser.add_option("--fastsim",  dest="isFastSim", action="store_true", default=False, help="Run with configuration for FastSim samples");
 parser.add_option("--log", "--log-dir", dest="logdir", type="string", default=None, help="Directory of stdout and stderr");
 parser.add_option("--env",   dest="env",     type="string", default="lxbatch", help="Give the environment on which you want to use the batch system (lxbatch, psi)");
+parser.add_option("--tra2",  dest="useTRAv2", action="store_true", default=False, help="Use the new experimental version of treeReAnalyzer");
 (options, args) = parser.parse_args()
 
 if options.imports:
@@ -463,6 +473,7 @@ if options.queue:
     if options.logdir: logdir = options.logdir.rstrip("/")
 
     if options.vectorTree: basecmd += " --vector "
+    if options.useTRAv2:   basecmd += " --tra2 "
     friendPost =  "".join(["  -F  %s %s " % (fn,ft) for fn,ft in options.friendTrees])
     friendPost += "".join([" --FM %s %s " % (fn,ft) for fn,ft in options.friendTreesMC])
     friendPost += "".join([" --FD %s %s " % (fn,ft) for fn,ft in options.friendTreesData])
