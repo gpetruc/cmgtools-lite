@@ -11,6 +11,8 @@ class ttHLepSkimmer( Analyzer ):
         self.idFunc = eval("lambda lepton : "+self.idCut);
 
         self.requireSameSignPair = getattr(cfg_ana,"requireSameSignPair",False)
+        self.minMll = getattr(cfg_ana, 'minMll', None)
+        self.maxMll = getattr(cfg_ana, 'maxMll', None)
 
     def declareHandles(self):
         super(ttHLepSkimmer, self).declareHandles()
@@ -44,6 +46,10 @@ class ttHLepSkimmer( Analyzer ):
             ret = False
         if ret and self.requireSameSignPair:
             ret = any([l1.charge()==l2.charge() for l1,l2 in itertools.combinations(leptons,2)])
+        if ret and self.minMll:
+            ret = any([((p1.p4()+p2.p4()).M() >= self.minMll) for p1,p2 in itertools.combinations(leptons,2)])
+        if ret and self.maxMll:
+            ret = any([((p1.p4()+p2.p4()).M() <= self.maxMll) for p1,p2 in itertools.combinations(leptons,2)])
 
         if ret: self.counters.counter('events').inc('accepted events')
         return ret
