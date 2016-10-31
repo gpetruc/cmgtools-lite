@@ -6,20 +6,25 @@ from array import array
 from ROOT import TEfficiency
 import os.path as osp
 
-LUMI = 2.26
+LUMI = 12.9
 WEIGHT = "puWeight"
 PAIRSEL = ("((pdgId*tag_pdgId==-11*11||pdgId*tag_pdgId==-13*13)"
            "&&abs(mass-91.)<30.&&abs(mcMatchId)>0)")
 SELECTIONS = {
-    'inclusive':      PAIRSEL,
+    'inclusive':               PAIRSEL,
+    # mcMatchId is never ==1 for MC but always for data
+    'runs (<= 275125)':        PAIRSEL+"&&(mcMatchId==1&&run<=275125)",
+    'runs (>275125 <=275783)': PAIRSEL+"&&(mcMatchId==1&&run>275125&&run<=275783)",
+    'runs (>275783 <=276384)': PAIRSEL+"&&(mcMatchId==1&&run>275783&&run<=276384)",
+    'runs (>276384 <=276811)': PAIRSEL+"&&(mcMatchId==1&&run>276384&&run<=276811)",
     # 'singleTriggers': PAIRSEL+"&&passSingle",
     # 'doubleTriggers': PAIRSEL+"&&passDouble",
-    'ttbar': "( (pdgId*tag_pdgId==-11*13)||"
-              "  ( (pdgId*tag_pdgId==-11*11||pdgId*tag_pdgId==-13*13)"
-              "&&abs(mass-91.)>15.&&met_pt>30.) )"
-              "&&passDouble&&nJet25>=2&&nBJetLoose25>=2"
-              "&&tag_pt>30&&abs(tag_mcMatchId)>0",
-    'ttH'  : "abs(mcMatchId)>0&&passDouble",
+    # 'ttbar': "( (pdgId*tag_pdgId==-11*13)||"
+    #           "  ( (pdgId*tag_pdgId==-11*11||pdgId*tag_pdgId==-13*13)"
+    #           "&&abs(mass-91.)>15.&&met_pt>30.) )"
+    #           "&&passDouble&&nJet25>=2&&nBJetLoose25>=2"
+    #           "&&tag_pt>30&&abs(tag_mcMatchId)>0",
+    # 'ttH'  : "abs(mcMatchId)>0&&passDouble",
 }
 
 LEPSEL = [
@@ -66,46 +71,39 @@ BINNINGS = [
 
 DENOMINATOR = "passLoose"
 NUMERATORS  = [
-    ('2lss',"passTight&&passTCharge", 'same-sign 2 lepton definition'),
-    # ('3l',  "passTight", '3 lepton definition'),
+    ('2lss',"passTight&&passTCharge&&ICHEPmediumMuonId", 'same-sign 2 lepton definition'),
+    ('3l',  "passTight&&ICHEPmediumMuonId", '3 lepton definition'),
 ]
 
 INPUTS = {
     'data':[
-        "Run2015",
-        # "DoubleEG_Run2015C_25ns_16Dec2015",
-        # "DoubleEG_Run2015D_16Dec2015",
-        # "DoubleMuon_Run2015C_25ns_16Dec2015",
-        # "DoubleMuon_Run2015D_16Dec2015",
-        # "MuonEG_Run2015C_25ns_16Dec2015",
-        # "MuonEG_Run2015D_16Dec2015",
-        # "SingleElectron_Run2015C_25ns_16Dec2015",
-        # "SingleElectron_Run2015D_16Dec2015",
-        # "SingleMuon_Run2015C_25ns_16Dec2015",
-        # "SingleMuon_Run2015D_16Dec2015",
+        "Run2016",
         ],
     'DY':["DYJetsToLL_M50"],
-    'ttbar':[
-        "TTJets_DiLepton",
-        "TTJets_SingleLeptonFromTbar_ext",
-        "TTJets_SingleLeptonFromTbar",
-        "TTJets_SingleLeptonFromT_ext",
-        "TTJets_SingleLeptonFromT",
-        ],
-    'ttH':["TTHnobb"],
+    # 'ttbar':[
+    #     "TTJets_DiLepton",
+    #     "TTJets_SingleLeptonFromTbar_ext",
+    #     "TTJets_SingleLeptonFromTbar",
+    #     "TTJets_SingleLeptonFromT_ext",
+    #     "TTJets_SingleLeptonFromT",
+    #     ],
+    # 'ttH':["TTHnobb"],
 }
 
-def getEfficiencyRatio(eff1, eff2):
+def getEfficiencyRatio(eff1, eff2, attributes_from_first=False):
     # This calculates eff1/eff2
     ratio = eff1.GetPassedHistogram().Clone("ratio")
     ratio.Sumw2()
     ratio.Divide(eff1.GetTotalHistogram())
     ratio.Multiply(eff2.GetTotalHistogram())
     ratio.Divide(eff2.GetPassedHistogram())
-    # Pass on the attributes of the second argument
+    # Pass on the attributes of the chosen argument
     for att in ['LineWidth','LineColor','MarkerStyle',
                 'MarkerSize','MarkerColor']:
-        getattr(ratio,'Set%s'%att)(getattr(eff2,'Get%s'%att)())
+        if not attributes_from_first:
+            getattr(ratio,'Set%s'%att)(getattr(eff2,'Get%s'%att)())
+        else:
+            getattr(ratio,'Set%s'%att)(getattr(eff1,'Get%s'%att)())
     return ratio
 
 class EfficiencyPlot(object):
@@ -127,6 +125,7 @@ class EfficiencyPlot(object):
                        ROOT.kOrange+8, ROOT.kSpring-5]
 
         self.reference = None # reference for ratios
+        self.invertratio = False
         self.ratiorange = (0.75, 1.15)
 
     def add(self,eff,tag,includeInRatio=True):
@@ -305,7 +304,10 @@ class EfficiencyPlot(object):
         # Calculate ratios
         self.ratios = []
         for eff,ref in zip(self.effsforratio, self.reference):
-            self.ratios.append(getEfficiencyRatio(ref, eff))
+            if self.invertratio:
+                self.ratios.append(getEfficiencyRatio(ref, eff))
+            else:
+                self.ratios.append(getEfficiencyRatio(eff, ref, attributes_from_first=True))
 
         if not self.xtitle:
             ratioframe.GetXaxis().SetTitle(
@@ -575,8 +577,8 @@ def getPassTotalHistosSimple((key, output,
 
     output[key] = (hpassed, htotal)
 
-def makePassedFailed(proc,fnames,indir):
-    stump = '_treeProducerSusyMultilepton_tree.root'
+def makePassedFailed(proc,fnames,indir,
+                     options, stump='.root'):
 
     try:
         with open('.xsecweights.pck', 'r') as cachefile:
@@ -592,7 +594,7 @@ def makePassedFailed(proc,fnames,indir):
         floc = osp.join(indir, "%s%s"%(pname,stump))
         if not osp.isfile(floc):
             print "Missing file: %s" % floc
-            print " ... continuing without"
+            raw_input(" ... press key to continuing without")
             continue
 
         print '... processing', pname
@@ -614,6 +616,7 @@ def makePassedFailed(proc,fnames,indir):
         for lep,lepsel,_ in LEPSEL:
             for sname,sel in SELECTIONS.iteritems():
                 if sname == 'ttH' and proc != 'ttH': continue
+                if sname.startswith('runs') and proc != 'data': continue
                 finalsel = '(%s)&&(%s)' % (lepsel, sel)
                 for nname,num,_ in NUMERATORS:
                     for var,bins,_ in BINNINGS:
@@ -633,10 +636,10 @@ def makePassedFailed(proc,fnames,indir):
                         task = (key, result_dict, tag, floc, fsel, num,
                                 DENOMINATOR, var, bins, options)
 
-                        if sname=='inclusive' and proc in ['data', 'DY']:
-                            tasks.append(task)
-                        elif proc != 'DY':
+                        if proc not in ['DY', 'data']:
                             tasks_cc.append(task)
+                        else:
+                            tasks.append(task)
 
 
         print 'Have %d tasks to process' % (len(tasks)+len(tasks_cc))
@@ -702,30 +705,53 @@ def makePlots(efficiencies, options):
                 plot.xtitle = xtitle
                 plot.tag = '%s'%(lname)
                 plot.subtag = '%s'%(ntitle)
-                plot.colors = [ROOT.kBlack,  ROOT.kAzure+1,
-                               ROOT.kGray+1, ROOT.kSpring-8,
-                               ROOT.kPink+9]
+                plot.colors = [ROOT.kBlack,
+                               ROOT.kAzure+1,
+                               ROOT.kGreen+3,
+                               ROOT.kGreen-2,
+                               ROOT.kGreen-6,
+                               ROOT.kGreen-9
+                               ]
+                # plot.colors = [ROOT.kBlack,  ROOT.kAzure+1,
+                #                ROOT.kGray+1, ROOT.kSpring-8,
+                #                ROOT.kPink+9]
+
+                plot.tagpos = (0.92,0.35+0.1)
+                plot.subtagpos = (0.92,0.29+0.1)
+                if lep == 'ee':
+                    plot.tagpos = (0.92,0.85)
+                    plot.subtagpos = (0.92,0.79)
+
 
                 if 'Jet' in var:
                     plot.subtag = '%s, p_{T} > 30 GeV' % ntitle
 
+                plot.reference = [efficiencies['DY'][(lep,'inclusive',nname,var)]]
+
                 plot.add(efficiencies['data'][(lep,'inclusive',nname,var)],
-                         'Data, Z mass fit',
-                         includeInRatio=False)
+                         'Data (%.2f fb^{-1}), Z mass fit' % LUMI,
+                         includeInRatio=True)
                 plot.add(efficiencies['DY'][(lep,'inclusive',nname,var)],
                          'DY MC, Z mass fit',
-                         includeInRatio=True)
-                plot.add(efficiencies['data'][(lep,'ttbar',nname,var)],
-                         'Data, t#bar{t} dilepton, cut & count',
                          includeInRatio=False)
-                plot.add(efficiencies['ttbar'][(lep,'ttbar',nname,var)],
-                         't#bar{t} MC, t#bar{t} dilepton, cut & count',
-                         includeInRatio=True)
+
+                for selname in SELECTIONS.keys():
+                    if selname == 'inclusive': continue
+                    plot.add(efficiencies['data'][(lep, selname, nname, var)],
+                         'Data %s'%selname, includeInRatio=True)
+
+                # plot.add(efficiencies['data'][(lep,'ttbar',nname,var)],
+                #          'Data, t#bar{t} dilepton, cut & count',
+                #          includeInRatio=False)
+                # plot.add(efficiencies['ttbar'][(lep,'ttbar',nname,var)],
+                #          't#bar{t} MC, t#bar{t} dilepton, cut & count',
+                #          includeInRatio=True)
                 # plot.add(efficiencies['ttH'][(lep,'ttH',nname,var)],
                 #          't#bar{t}H MC, inclusive',
                 #          includeInRatio=False)
 
-                plot.reference = [plot.effs[0], plot.effs[2]]
+                # plot.reference = [plot.effs[0], plot.effs[1]]
+                # plot.reference = [plot.effs[0], plot.effs[2]]
 
                 plot.show_with_ratio('tnp_eff_%s'%(plot.name),
                                       options.outDir)
@@ -792,30 +818,21 @@ def make2DMap(efficiencies, options):
         ofile.Close()
         print " wrote %s" % floc
 
-
-if __name__ == '__main__':
-    from optparse import OptionParser
-    usage = "%prog [options] tnpTreeDir"
-    parser = OptionParser(usage=usage)
-    parser.add_option("-o", "--outDir", default="tnp_effs",
-                      action="store", type="string", dest="outDir",
-                      help=("Output directory for eff plots "
-                            "[default: %default/]"))
-    parser.add_option('-c', '--cutNCount', dest='cutNCount',
-                      action="store_true",
-                      help='Do cut & count instead of fitting mass shape')
-    parser.add_option('-j', '--jobs', dest='jobs', action="store",
-                      type='int', default=1,
-                      help=('Number of jobs to run in parallel '
-                        '[default: single]'))
-    (options, args) = parser.parse_args()
+def main(args, options):
+    try:
+        if not osp.exists(args[0]):
+            print "Input directory does not exists: %s" % args[0]
+            sys.exit(-1)
+    except IndexError:
+        parser.print_usage()
+        sys.exit(-1)
 
     # Gather all the passed/total histograms
     cachefilename = "tnppassedtotal.pck"
     if not osp.isfile(cachefilename):
         passedtotal = {}
         for proc,fnames in INPUTS.iteritems():
-            passedtotal[proc] = makePassedFailed(proc,fnames,args[0])
+            passedtotal[proc] = makePassedFailed(proc,fnames,args[0],options,stump='.root')
 
         print "#"*30
         print "ALL DONE"
@@ -841,4 +858,23 @@ if __name__ == '__main__':
     makePlots(efficiencies, options)
     make2DMap(efficiencies, options)
 
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+    usage = "%prog [options] tnptrees/"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-o", "--outDir", default="tnp_effs",
+                      action="store", type="string", dest="outDir",
+                      help=("Output directory for eff plots "
+                            "[default: %default/]"))
+    parser.add_option('-c', '--cutNCount', dest='cutNCount',
+                      action="store_true",
+                      help='Do cut & count instead of fitting mass shape')
+    parser.add_option('-j', '--jobs', dest='jobs', action="store",
+                      type='int', default=1,
+                      help=('Number of jobs to run in parallel '
+                        '[default: single]'))
+    (options, args) = parser.parse_args()
+
+    main(args, options)
 
