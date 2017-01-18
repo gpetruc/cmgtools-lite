@@ -1,3 +1,5 @@
+#include <assert.h>
+
 void trainLeptonID(TString name, TString sig1file, TString sig2file, TString bkg1file, TString bkg2file, bool doMultiClass = false, TString file_for_sigW_1="", TString file_for_sigW_2="", TString file_for_bkgW_1="", TString file_for_bkgW_2="", double int1s=0, double int2s=0, double int1b=0, double int2b=0) {
     TFile *_f_s1 = TFile::Open(sig1file.Data(),"read");
     TFile *_f_s2 =  (sig2file=="") ? NULL : TFile::Open(sig2file.Data(),"read");
@@ -17,7 +19,7 @@ void trainLeptonID(TString name, TString sig1file, TString sig2file, TString bkg
 
     TCut lepton = "1";
     
-    if (name.Contains("forMoriond16")) {
+    if (name.Contains("forMoriond")) {
         factory->AddVariable("LepGood_pt", 'D');
         factory->AddVariable("LepGood_eta", 'D');
 	factory->AddVariable("LepGood_jetNDauChargedMVASel", 'D');
