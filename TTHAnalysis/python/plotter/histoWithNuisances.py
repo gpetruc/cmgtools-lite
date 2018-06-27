@@ -503,8 +503,9 @@ class HistoWithNuisances:
                 if yu > minRatio*y0 or yd > minRatio*y0: reg_nx += 1
             s0 += y0; su += yu; sd += yd
             s02 += e0**2; su2 += eu**2; sd2 += ed**2
-        if debug: print "Template for %s %s %s effective unweighted events: %9.2f" % (binname, h.GetName(), var, s0**2/s02)
-        if (s0**2/s02) < minUnweightedEvents and len(reg_xy) > 0:
+        e_u_e = min(s0**2/s02, su**2/su2, sd**2/sd2)
+        if debug: print "Template for %s %s %s effective unweighted events: %9.2f" % (binname, h.GetName(), var, e_u_e)
+        if e_u_e < minUnweightedEvents and len(reg_xy) > 0:
             #print "     data points for regularization: %d (%d independent x values) " % (len(reg_xy), reg_nx)
             s1, sx, sy, sxx, sxy = 0,0,0,0,0
             for rx, ry, dry in reg_xy:
@@ -544,7 +545,7 @@ class HistoWithNuisances:
                                 sd,sqrt(sd2), spd, min(max( (sd-spd)/(sqrt(max(s02,sd2)) if s02 else 1e-5),  -9.99),+9.99),
                                 (su-s0),  min(abs(su/s0 if s0 else 99.999),99.999),  (spu-s0),  min(abs(spu/s0 if s0 else 99.999),99.999),  
                                 (sd-s0),  min(abs(sd/s0 if s0 else 99.999),99.999),  (spd-s0),  min(abs(spd/s0 if s0 else 99.999),99.999))
-            elif not quiet: print "Info: template %s %s %s effective unweighted events %.2f was regularized. kup = %.2f, kdown = %.2f" % (binname, h.GetName(), var, s0**2/s02, spu/s0 if s0 else 999, spd/s0 if s0 else 999)
+            elif not quiet: print "Info: template %s %s %s effective unweighted events %.2f was regularized. kup = %.2f, kdown = %.2f" % (binname, h.GetName(), var, e_u_e, spu/s0 if s0 else 999, spd/s0 if s0 else 999)
 
 
     def rooFitPdfAndNorm(self,roofitContext=None):
